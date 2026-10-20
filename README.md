@@ -79,6 +79,11 @@ database url.
 
     $ eralchemy -i 'markdown_file.er' -o erd_from_markdown_file.md -m mermaid_er
 
+#### To a [D2](https://d2lang.com) file
+
+    $ eralchemy -i 'markdown_file.er' -o erd_from_markdown_file.d2
+    $ d2 erd_from_markdown_file.d2 erd_from_markdown_file.svg
+
 ### Usage from Python
 
 ```python

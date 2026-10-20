@@ -13,6 +13,7 @@ from sqlalchemy.exc import ArgumentError
 
 from .cst import config
 from .helpers import check_args, original_order_keys_first, plantuml_convert
+from .models import quote_d2
 from .parser import (
     ParsingException,
     line_iterator_to_intermediary,
@@ -156,6 +157,16 @@ title: {title}
     return md_markup.encode()
 
 
+def intermediary_to_d2(tables, relationships, title=""):
+    """Saves the intermediary representation to D2."""
+    markup = _intermediary_to_d2(tables, relationships)
+    if title:
+        markup = (
+            f"diagram_title: {quote_d2(title)} {{\n  shape: text\n  near: top-center\n}}\n{markup}"
+        )
+    return f"{markup}\n".encode()
+
+
 def intermediary_to_dot(tables, relationships, title=""):
     """Save the intermediary representation to dot format."""
     dot_file = _intermediary_to_dot(tables, relationships, title)
@@ -217,6 +228,13 @@ def _intermediary_to_mermaid_er(tables, relationships):
     return f"erDiagram\n{t}\n{r}"
 
 
+def _intermediary_to_d2(tables, relationships):
+    """Returns the D2 source in a string."""
+    t = "\n".join(t.to_d2() for t in tables)
+    r = "\n".join(r.to_d2() for r in relationships)
+    return f"{t}\n{r}"
+
+
 def _intermediary_to_dot(tables, relationships, title=""):
     """Returns the dot source representing the database in a string."""
     t = "\n".join(t.to_dot() for t in tables)
@@ -257,6 +275,7 @@ switch_output_mode_auto = {
     "er": intermediary_to_markdown,
     "mermaid": intermediary_to_mermaid,
     "mermaid_er": intermediary_to_mermaid_er,
+    "d2": intermediary_to_d2,
     "graph": intermediary_to_schema,
     "graph_svg": partial(intermediary_to_schema, extension="svg"),
     "dot": intermediary_to_dot,
@@ -269,6 +288,7 @@ switch_output_mode_auto = {
 switch_output_mode = {
     "er": intermediary_to_markdown,
     "md": intermediary_to_mermaid,
+    "d2": intermediary_to_d2,
     "dot": intermediary_to_dot,
     "puml": intermediary_to_puml,
 }
@@ -418,9 +438,11 @@ def render_er(
         'graph': writes the image of the ER diagram.
         'mermaid': writes to a file the markup to generate an Mermaid-JS style diagram
         'mermaid_er': writes the markup to generate an Mermaid-JS ER diagram
+        'd2': writes the markup to generate a D2 diagram
         'dot': write to file the diagram in dot format.
         'auto': choose from the filename:
             '*.er': writes to a file the markup to generate an ER style diagram.
+            '.d2': writes to a file the markup to generate a D2 diagram.
             '.dot': returns the graph in the dot syntax.
             '.md': writes to a file the markup to generate an Mermaid-JS style diagram
             else: return a graph to the format graph

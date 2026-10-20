@@ -53,6 +53,12 @@ def sanitize_mermaid(text: str, *, is_er: bool = False):
     return re.sub(RE, "_", text)
 
 
+def quote_d2(text: str) -> str:
+    """Quote a D2 key or value so keywords, dots and # are read literally."""
+    escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
 class Column(Drawable):
     """Represents a Column in the intermediaty syntax."""
 
@@ -125,6 +131,17 @@ class Column(Drawable):
         attributes_str = f"{', '.join(attributes)}" if attributes else ""
         return f" {type_str} {name} {attributes_str}"
 
+    def to_d2(self) -> str:
+        constraints = []
+        if self.is_key:
+            constraints.append("primary_key")
+        if self.is_foreign_key:
+            constraints.append("foreign_key")
+        line = f"  {quote_d2(self.name)}: {quote_d2(self.type or '')}"
+        if constraints:
+            line += f" {{constraint: [{'; '.join(constraints)}]}}"
+        return line
+
     def to_dot(self) -> str:
         base = config["DOT_ROW_TAGS"].format(
             ' ALIGN="LEFT" {port}',
@@ -182,6 +199,12 @@ class Relation(Drawable):
         "?": "one or zero",
         "+": "1+",
     }
+    cardinalities_d2 = {
+        "*": "cf-many",
+        "?": "cf-one",
+        "+": "cf-many-required",
+        "1": "cf-one-required",
+    }
 
     @staticmethod
     def make_from_match(match: re.Match) -> Relation:
@@ -237,6 +260,25 @@ class Relation(Drawable):
         left_col = sanitize_mermaid(self.left_table, is_er=True)
         right_col = sanitize_mermaid(self.right_table, is_er=True)
         return f"{left_col} {left}--{right} {right_col} : has"
+
+    def to_d2(self) -> str:
+        left = quote_d2(self.left_table)
+        if self.left_column:
+            left += f".{quote_d2(self.left_column)}"
+        right = quote_d2(self.right_table)
+        if self.right_column:
+            right += f".{quote_d2(self.right_column)}"
+        # D2 only draws an arrowhead on an end the connection points to
+        arrow = "<" if self.left_cardinality else ""
+        arrow += "->" if self.right_cardinality else "--"
+        arrowheads = [
+            f"  {end}-arrowhead.shape: {Relation.cardinalities_d2[card]}"
+            for end, card in (("source", self.left_cardinality), ("target", self.right_cardinality))
+            if card
+        ]
+        if not arrowheads:
+            return f"{left} {arrow} {right}"
+        return f"{left} {arrow} {right}: {{\n" + "\n".join(arrowheads) + "\n}"
 
     def graphviz_cardinalities(self, card) -> str:
         if card == "":
@@ -352,6 +394,11 @@ class Table(Drawable):
         columns = [c.to_mermaid_er() for c in self.columns]
         name = sanitize_mermaid(self.name, is_er=True)
         return f"{name} {{\n" + "\n  ".join(columns) + "\n}"
+
+    def to_d2(self) -> str:
+        lines = [f"{quote_d2(self.name)}: {{", "  shape: sql_table"]
+        lines += [c.to_d2() for c in self.columns]
+        return "\n".join([*lines, "}"])
 
     @property
     def columns_sorted(self):
