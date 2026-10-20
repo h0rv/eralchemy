@@ -2,6 +2,7 @@ import argparse
 import base64
 import copy
 import logging
+import math
 import os
 import re
 import sys
@@ -233,7 +234,6 @@ def _intermediary_to_d2(tables: list[Table], relationships: list[Relation], titl
         parts.append(f"{title_key}: {quote_d2(title)} {{\n  shape: text\n  near: top-center\n}}")
     table_keys = {t.name: d2_key(t.name, taken) for t in tables}
     column_keys = {t.name: t.d2_column_keys() for t in tables}
-    parts += [t.to_d2(table_keys[t.name]) for t in tables]
 
     def endpoint(table: str, column: str) -> str | None:
         # Relations can point at tables or columns that were filtered out,
@@ -244,12 +244,42 @@ def _intermediary_to_d2(tables: list[Table], relationships: list[Relation], titl
         column_key = column_keys[table].get(column)
         return f"{table_key}.{quote_d2(column_key)}" if column_key else table_key
 
+    edges, linked = [], set()
     for r in relationships:
         left = endpoint(r.left_table, r.left_column)
         right = endpoint(r.right_table, r.right_column)
         if left and right:
-            parts.append(r.to_d2(left, right))
-    return "\n".join(parts) + "\n"
+            edges.append(r.to_d2(left, right))
+            linked |= {r.left_table, r.right_table}
+    parts += [t.to_d2(table_keys[t.name]) for t in tables if t.name in linked]
+    # Tallest first, so the tables in each grid row are of similar height
+    by_height = sorted(tables, key=lambda t: len(t.columns), reverse=True)
+    unlinked = [t.to_d2(table_keys[t.name]) for t in by_height if t.name not in linked]
+    if unlinked:
+        parts.append(_d2_grid(unlinked, d2_key("unlinked", taken), below=bool(linked)))
+    return "\n".join(parts + edges) + "\n"
+
+
+def _d2_grid(shapes: list[str], key: str, below: bool) -> str:
+    """Lay out tables without relations in rows, apart from the connected tables.
+
+    Each shape sits in its own cell because D2 stretches shapes to fill a cell.
+    """
+    columns = max(1, round(2 * math.sqrt(len(shapes))))
+    lines = [
+        f'{quote_d2(key)}: "" {{',
+        f"  grid-rows: {math.ceil(len(shapes) / columns)}",
+        f"  grid-columns: {columns}",
+        "  grid-gap: 40",
+        *(["  near: bottom-center"] if below else []),
+        "  style.stroke-width: 0",
+        "  style.fill: transparent",
+    ]
+    for i, shape in enumerate(shapes):
+        lines += [f'  "{i}": "" {{', "    style.stroke-width: 0", "    style.fill: transparent"]
+        lines += ["    " + line for line in shape.split("\n")]
+        lines.append("  }")
+    return "\n".join([*lines, "}"])
 
 
 def _intermediary_to_dot(tables, relationships, title=""):

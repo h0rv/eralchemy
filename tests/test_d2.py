@@ -97,7 +97,22 @@ def test_intermediary_to_d2():
 def test_intermediary_to_d2_title_does_not_take_a_table():
     d2 = intermediary_to_d2([Table(name="title", columns=[])], [], title="T").decode()
     assert '"title": "T"' in d2
-    assert f'"title{ZWSP}": {{\n  shape: sql_table\n}}' in d2
+    assert f'"title{ZWSP}": {{\n      shape: sql_table\n    }}' in d2
+
+
+def test_intermediary_to_d2_puts_unlinked_tables_in_a_grid():
+    lone = Table(name="lone", columns=[Column(name="id", type="INTEGER")])
+    taller = Table(name="taller", columns=[Column(name="id"), Column(name="name")])
+    d2 = intermediary_to_d2([*tables, lone, taller], relationships).decode()
+    grid = d2[d2.index('"unlinked": "" {') :]
+    assert "near: bottom-center" in grid
+    assert grid.index('"taller"') < grid.index('"lone"')
+    for table in tables:
+        assert table.to_d2() in d2[: d2.index('"unlinked"')]
+
+    alone = intermediary_to_d2([lone], []).decode()
+    assert '"unlinked": "" {' in alone
+    assert "near:" not in alone
 
 
 def test_intermediary_to_d2_drops_missing_endpoints():

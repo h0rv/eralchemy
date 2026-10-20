@@ -85,6 +85,7 @@ database url.
     $ d2 erd_from_markdown_file.d2 erd_from_markdown_file.svg
 
 Rendering needs [D2](https://d2lang.com/tour/install) v0.9.0 or newer, which bundles the TALA layout engine that the output selects by default.
+Tables without relations are placed in a grid below the connected tables.
 
 ### Usage from Python
 
