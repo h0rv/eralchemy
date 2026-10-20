@@ -13,7 +13,7 @@ from sqlalchemy.exc import ArgumentError
 
 from .cst import config
 from .helpers import check_args, original_order_keys_first, plantuml_convert
-from .models import quote_d2
+from .models import Relation, Table, d2_key, quote_d2
 from .parser import (
     ParsingException,
     line_iterator_to_intermediary,
@@ -159,12 +159,8 @@ title: {title}
 
 def intermediary_to_d2(tables, relationships, title=""):
     """Saves the intermediary representation to D2."""
-    markup = _intermediary_to_d2(tables, relationships)
-    if title:
-        markup = (
-            f"diagram_title: {quote_d2(title)} {{\n  shape: text\n  near: top-center\n}}\n{markup}"
-        )
-    return f"{markup}\n".encode()
+    d2_file = _intermediary_to_d2(tables, relationships, title)
+    return d2_file.encode()
 
 
 def intermediary_to_dot(tables, relationships, title=""):
@@ -228,11 +224,32 @@ def _intermediary_to_mermaid_er(tables, relationships):
     return f"erDiagram\n{t}\n{r}"
 
 
-def _intermediary_to_d2(tables, relationships):
+def _intermediary_to_d2(tables: list[Table], relationships: list[Relation], title: str = "") -> str:
     """Returns the D2 source in a string."""
-    t = "\n".join(t.to_d2() for t in tables)
-    r = "\n".join(r.to_d2() for r in relationships)
-    return f"{t}\n{r}"
+    taken: set[str] = set()
+    parts = [config["D2_CONFIG"]] if config["D2_CONFIG"] else []
+    if title:
+        title_key = quote_d2(d2_key("title", taken))
+        parts.append(f"{title_key}: {quote_d2(title)} {{\n  shape: text\n  near: top-center\n}}")
+    table_keys = {t.name: d2_key(t.name, taken) for t in tables}
+    column_keys = {t.name: t.d2_column_keys() for t in tables}
+    parts += [t.to_d2(table_keys[t.name]) for t in tables]
+
+    def endpoint(table: str, column: str) -> str | None:
+        # Relations can point at tables or columns that were filtered out,
+        # which D2 would otherwise draw as new shapes or untyped rows.
+        if table not in table_keys:
+            return None
+        table_key = quote_d2(table_keys[table])
+        column_key = column_keys[table].get(column)
+        return f"{table_key}.{quote_d2(column_key)}" if column_key else table_key
+
+    for r in relationships:
+        left = endpoint(r.left_table, r.left_column)
+        right = endpoint(r.right_table, r.right_column)
+        if left and right:
+            parts.append(r.to_d2(left, right))
+    return "\n".join(parts) + "\n"
 
 
 def _intermediary_to_dot(tables, relationships, title=""):

@@ -84,6 +84,8 @@ database url.
     $ eralchemy -i 'markdown_file.er' -o erd_from_markdown_file.d2
     $ d2 erd_from_markdown_file.d2 erd_from_markdown_file.svg
 
+Rendering needs [D2](https://d2lang.com/tour/install) v0.9.0 or newer, which bundles the TALA layout engine that the output selects by default.
+
 ### Usage from Python
 
 ```python
@@ -115,6 +117,9 @@ dot_digraph()
 
 render_er(Base, "forum.svg")
 ```
+
+D2 output starts with `config["D2_CONFIG"]`, which selects the TALA layout engine.
+Use `d2_layout("elk")` to pick another engine, or set `config["D2_CONFIG"]` to any D2, such as a theme or [configuration variables](https://d2lang.com/tour/vars).
 
 ## Architecture
 
