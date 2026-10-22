@@ -20,6 +20,11 @@ To install eralchemy, just do:
 
     $ pip install eralchemy
 
+Or run it without installing, using [uv](https://docs.astral.sh/uv/):
+
+    $ uvx eralchemy -i 'markdown_file.er' -o erd.md -m mermaid_er
+    $ uvx --from 'eralchemy[graphviz]' eralchemy -i 'markdown_file.er' -o erd.png
+
 ### Graph library flavors
 
 To create Pictures and PDFs, eralchemy relies on either graphviz or pygraphviz.
@@ -152,6 +157,12 @@ Every feedback is welcome on the [GitHub issues](https://github.com/eralchemy/er
 Install the development dependencies using
 
     $ pip install -e .[dev,test]
+
+or with uv, which installs the versions pinned in `uv.lock`:
+
+    $ uv sync --extra dev --extra test
+
+and then prefix commands with `uv run`, such as `uv run pytest`.
 
 Make sure to run the pre-commit to fix formatting
 
