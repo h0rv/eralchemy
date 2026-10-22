@@ -632,10 +632,24 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+graphviz = [
+    { name = "graphviz" },
+]
+pygraphviz = [
+    { name = "pygraphviz" },
+]
+
+[package.dev-dependencies]
 dev = [
+    { name = "flask-sqlalchemy" },
+    { name = "graphviz" },
     { name = "nox" },
     { name = "pre-commit", version = "4.6.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pre-commit", version = "4.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "psycopg2-binary" },
+    { name = "pygraphviz" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
 ]
 docs = [
     { name = "pydata-sphinx-theme", version = "0.19.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -648,12 +662,6 @@ docs = [
     { name = "sphinx-design", version = "0.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "sphinx-design", version = "0.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
-graphviz = [
-    { name = "graphviz" },
-]
-pygraphviz = [
-    { name = "pygraphviz" },
-]
 test = [
     { name = "flask-sqlalchemy" },
     { name = "graphviz" },
@@ -665,23 +673,37 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "flask-sqlalchemy", marker = "extra == 'test'", specifier = ">=2.5.1" },
     { name = "graphviz", marker = "extra == 'graphviz'", specifier = ">=0.20.3" },
-    { name = "graphviz", marker = "extra == 'test'", specifier = ">=0.20.3" },
-    { name = "nox", marker = "extra == 'dev'" },
-    { name = "pre-commit", marker = "extra == 'dev'" },
-    { name = "psycopg2-binary", marker = "extra == 'test'", specifier = ">=2.9.3" },
-    { name = "pydata-sphinx-theme", marker = "extra == 'docs'" },
     { name = "pygraphviz", marker = "extra == 'pygraphviz'", specifier = ">=1.9" },
-    { name = "pygraphviz", marker = "extra == 'test'", specifier = ">=1.9" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.4.3" },
-    { name = "pytest-cov", marker = "extra == 'test'" },
-    { name = "sphinx", marker = "extra == 'docs'", specifier = ">=6.2.1" },
-    { name = "sphinx-copybutton", marker = "extra == 'docs'" },
-    { name = "sphinx-design", marker = "extra == 'docs'" },
     { name = "sqlalchemy", specifier = ">=1.4.18" },
 ]
-provides-extras = ["test", "graphviz", "pygraphviz", "dev", "docs"]
+provides-extras = ["graphviz", "pygraphviz"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "flask-sqlalchemy", specifier = ">=2.5.1" },
+    { name = "graphviz", specifier = ">=0.20.3" },
+    { name = "nox" },
+    { name = "pre-commit" },
+    { name = "psycopg2-binary", specifier = ">=2.9.3" },
+    { name = "pygraphviz", specifier = ">=1.9" },
+    { name = "pytest", specifier = ">=7.4.3" },
+    { name = "pytest-cov" },
+]
+docs = [
+    { name = "pydata-sphinx-theme" },
+    { name = "sphinx", specifier = ">=6.2.1" },
+    { name = "sphinx-copybutton" },
+    { name = "sphinx-design" },
+]
+test = [
+    { name = "flask-sqlalchemy", specifier = ">=2.5.1" },
+    { name = "graphviz", specifier = ">=0.20.3" },
+    { name = "psycopg2-binary", specifier = ">=2.9.3" },
+    { name = "pygraphviz", specifier = ">=1.9" },
+    { name = "pytest", specifier = ">=7.4.3" },
+    { name = "pytest-cov" },
+]
 
 [[package]]
 name = "exceptiongroup"

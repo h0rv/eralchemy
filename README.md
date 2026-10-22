@@ -158,11 +158,11 @@ Every feedback is welcome on the [GitHub issues](https://github.com/eralchemy/er
 
 Install the development dependencies using
 
-    $ pip install -e .[dev,test]
+    $ pip install -e . --group dev
 
 or with uv, which installs the versions pinned in `uv.lock`:
 
-    $ uv sync --extra dev --extra test
+    $ uv sync
 
 and then prefix commands with `uv run`, such as `uv run pytest`.
 
