@@ -82,9 +82,10 @@ database url.
 #### To a [D2](https://d2lang.com) file
 
     $ eralchemy -i 'markdown_file.er' -o erd_from_markdown_file.d2
-    $ d2 erd_from_markdown_file.d2 erd_from_markdown_file.svg
+    $ eralchemy -i 'markdown_file.er' -o erd_from_markdown_file.svg -m d2
 
-Rendering needs [D2](https://d2lang.com/tour/install) v0.9.0 or newer, which bundles the TALA layout engine that the output selects by default.
+The image is rendered with the `d2` command, so it needs [D2](https://d2lang.com/tour/install) v0.9.0 or newer, which bundles the TALA layout engine that the output selects by default.
+When Graphviz is not installed, image outputs such as `.svg` use D2.
 Tables without relations are placed in a grid below the connected tables.
 
 ### Usage from Python

@@ -126,7 +126,8 @@ def test_filter_exclude_columns(exclude_columns):
     check_tables_columns(actual_tables, id_is_included=False)
 
 
-def test_get_output_mode():
+def test_get_output_mode(monkeypatch):
+    monkeypatch.setattr("eralchemy.main.GRAPHVIZ_AVAILABLE", True)
     # access .func for partial
     assert get_output_mode("hello.png", "auto").func == intermediary_to_schema
     assert get_output_mode("hello.er", "auto") == intermediary_to_markdown

@@ -3,8 +3,15 @@ import subprocess
 
 import pytest
 
+from eralchemy import main
 from eralchemy.cst import config, d2_layout, reset_config
-from eralchemy.main import intermediary_to_d2, line_iterator_to_intermediary
+from eralchemy.main import (
+    get_output_mode,
+    intermediary_to_d2,
+    intermediary_to_d2_image,
+    line_iterator_to_intermediary,
+    render_er,
+)
 from eralchemy.models import Column, Relation, Table, d2_key, quote_d2
 from tests.common import relationships, tables
 
@@ -163,3 +170,31 @@ def test_d2_compiles(tmp_path):
     source = tmp_path / "erd.d2"
     source.write_bytes(intermediary_to_d2(d2_tables, d2_relationships, title='A "title"\n2'))
     subprocess.run(["d2", str(source), str(tmp_path / "erd.svg")], check=True)
+
+
+def test_get_output_mode_renders_d2_images():
+    assert get_output_mode(None, "d2") == intermediary_to_d2
+    assert get_output_mode("erd.d2", "d2") == intermediary_to_d2
+    assert get_output_mode("erd", "d2") == intermediary_to_d2
+    mode = get_output_mode("erd.svg", "d2")
+    assert mode.func == intermediary_to_d2_image
+    assert mode.keywords == {"extension": "svg"}
+
+
+def test_get_output_mode_uses_d2_without_graphviz(monkeypatch):
+    monkeypatch.setattr(main, "GRAPHVIZ_AVAILABLE", False)
+    monkeypatch.setattr(main.shutil, "which", lambda _: "/usr/bin/d2")
+    assert get_output_mode("erd.svg", "auto").func == intermediary_to_d2_image
+
+
+def test_d2_image_needs_d2(monkeypatch):
+    monkeypatch.setattr(main.shutil, "which", lambda _: None)
+    with pytest.raises(FileNotFoundError, match="d2 is not installed"):
+        intermediary_to_d2_image(tables, relationships)
+
+
+@pytest.mark.skipif(shutil.which("d2") is None, reason="d2 is not installed")
+def test_render_er_to_d2_svg(tmp_path):
+    output = tmp_path / "erd.svg"
+    render_er(["[parent]", '    *id {label:"INTEGER"}'], str(output), mode="d2")
+    assert output.read_bytes().startswith(b"<?xml")

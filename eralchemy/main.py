@@ -5,6 +5,8 @@ import logging
 import math
 import os
 import re
+import shutil
+import subprocess
 import sys
 from functools import partial
 from importlib.metadata import PackageNotFoundError, version
@@ -162,6 +164,22 @@ def intermediary_to_d2(tables, relationships, title=""):
     """Saves the intermediary representation to D2."""
     d2_file = _intermediary_to_d2(tables, relationships, title)
     return d2_file.encode()
+
+
+D2_IMAGE_FORMATS = {"svg", "png", "pdf", "gif", "pptx"}
+
+
+def intermediary_to_d2_image(tables, relationships, title="", extension="svg"):
+    d2 = shutil.which("d2")
+    if d2 is None:
+        raise FileNotFoundError("d2 is not installed, see https://d2lang.com/tour/install")
+    source = _intermediary_to_d2(tables, relationships, title).encode()
+    result = subprocess.run(
+        [d2, "--stdout-format", extension, "-", "-"], input=source, capture_output=True
+    )
+    if result.returncode:
+        raise ValueError(result.stderr.decode())
+    return result.stdout
 
 
 def intermediary_to_dot(tables, relationships, title=""):
@@ -377,6 +395,9 @@ def all_to_intermediary(filename_or_input, schema=None):
 
 def get_output_mode(output: str | None, mode: str):
     """From the output name and the mode returns a the function that will transform the intermediary representation to the output."""
+    d2_format = os.path.splitext(output or "")[1].lstrip(".")
+    if mode == "d2" and d2_format in D2_IMAGE_FORMATS:
+        return partial(intermediary_to_d2_image, extension=d2_format)
     if mode != "auto":
         try:
             return switch_output_mode_auto[mode]
@@ -390,6 +411,8 @@ def get_output_mode(output: str | None, mode: str):
     try:
         return switch_output_mode[extension]
     except KeyError:
+        if not GRAPHVIZ_AVAILABLE and extension in D2_IMAGE_FORMATS and shutil.which("d2"):
+            return partial(intermediary_to_d2_image, extension=extension)
         return partial(intermediary_to_schema, extension=extension)
 
 
@@ -485,14 +508,15 @@ def render_er(
         'graph': writes the image of the ER diagram.
         'mermaid': writes to a file the markup to generate an Mermaid-JS style diagram
         'mermaid_er': writes the markup to generate an Mermaid-JS ER diagram
-        'd2': writes the markup to generate a D2 diagram
+        'd2': writes the markup to generate a D2 diagram, or the image rendered by the d2
+            command when the output is a .svg, .png, .pdf, .gif or .pptx file
         'dot': write to file the diagram in dot format.
         'auto': choose from the filename:
             '*.er': writes to a file the markup to generate an ER style diagram.
             '.d2': writes to a file the markup to generate a D2 diagram.
             '.dot': returns the graph in the dot syntax.
             '.md': writes to a file the markup to generate an Mermaid-JS style diagram
-            else: return a graph to the format graph
+            else: return a graph to the format graph, using d2 when graphviz is not installed
     :param include_tables: lst of str, table names to include, None means include all
     :param include_columns: lst of str, column names to include, None means include all
     :param exclude_tables: lst of str, table names to exclude, None means exclude nothing
